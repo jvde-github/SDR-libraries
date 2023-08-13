@@ -43,12 +43,10 @@ jobs:
       run: |
         mkdir output; cd output
         mkdir Licenses; mkdir include; cd include; mkdir curl; cd ..; mkdir release; mkdir lib;         
-        cp C:\vcpkg\installed\${{matrix.platform}}-windows\include\*.h include
-        cp C:\vcpkg\installed\${{matrix.platform}}-windows\include\curl\*.h include\curl
-        cp C:\vcpkg\installed\${{matrix.platform}}-windows\lib\*.lib lib
-        cp C:\vcpkg\installed\${{matrix.platform}}-windows\bin\*.dll release
+        xcopy /E /I "C:\vcpkg\installed\${{matrix.platform}}-windows\include" "include"
+        xcopy /E /I "C:\vcpkg\installed\${{matrix.platform}}-windows\lib" "lib"
+        xcopy /E /I "C:\vcpkg\installed\${{matrix.platform}}-windows\bin" "release"
         cd ..
-        
     - name: Building Libraries
       if: true
       run: |
