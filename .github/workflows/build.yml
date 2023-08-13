@@ -115,5 +115,5 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         Compress-Archive -Path output/* -DestinationPath "./SDR-libraries-${{matrix.platform}}.zip"
-        bash -c "gh release upload 'edge' './SDR-libraries-${{matrix.platform}}.zip' --repo jvde-github/SDR-libraries --clobber" 
+        bash -c "gh release upload 'latest' './SDR-libraries-${{matrix.platform}}.zip' --repo jvde-github/SDR-libraries --clobber" 
 
