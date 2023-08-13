@@ -37,7 +37,7 @@ jobs:
     - name: Install vcpkg packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        vcpkg install curl:${{matrix.platform}}-windows #libpq:${{matrix.platform}}-windows fftw3:${{matrix.platform}}-windows libusb:${{matrix.platform}}-windows pthread:${{matrix.platform}}-windows soxr:${{matrix.platform}}-windows zeromq:${{matrix.platform}}-windows
+        vcpkg install curl:${{matrix.platform}}-windows libpq:${{matrix.platform}}-windows fftw3:${{matrix.platform}}-windows libusb:${{matrix.platform}}-windows pthread:${{matrix.platform}}-windows soxr:${{matrix.platform}}-windows zeromq:${{matrix.platform}}-windows
     - name: Setting up directories
       run: |
         mkdir output; cd output
@@ -49,14 +49,14 @@ jobs:
         cd ..
         
     - name: Building Libraries
-      if: false
+      if: true
       run: |
 
         echo "x64" > x64-a; echo "Win32" > x86-a; $msplatform = $(cat "${{matrix.platform}}-a")
         $gen = "Visual Studio 17 2022"
         $config = "Release"
 
-        $libusb_inc = "C:\vcpkg\installed\${{matrix.platform}}-windows\include\libusb-1.0"
+        $libusb_inc = "C:\vcpkg\installed\${{matrix.platform}}-windows\output\include\libusb-1.0"
         $libusb_lib = "C:\vcpkg\installed\${{matrix.platform}}-windows\output\lib\libusb-1.0.lib"
         $pthread_lib = "C:\vcpkg\installed\${{matrix.platform}}-windows\output\lib\pthreadVC3.lib"
         $pthread_inc = "C:\vcpkg\installed\${{matrix.platform}}-windows\output\include"
