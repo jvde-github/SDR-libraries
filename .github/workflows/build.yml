@@ -32,7 +32,7 @@ jobs:
     - name: Install vcpkg packages
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        vcpkg install libpq:${{matrix.platform}}-windows fftw3:${{matrix.platform}}-windows libusb:${{matrix.platform}}-windows pthread:${{matrix.platform}}-windows curl:${{matrix.platform}}-windows soxr:${{matrix.platform}}-windows zeromq:${{matrix.platform}}-windows
+        vcpkg install curl:${{matrix.platform}}-windows #libpq:${{matrix.platform}}-windows fftw3:${{matrix.platform}}-windows libusb:${{matrix.platform}}-windows pthread:${{matrix.platform}}-windows soxr:${{matrix.platform}}-windows zeromq:${{matrix.platform}}-windows
     - name: Setting up directories
       run: |
         mkdir Licenses; mkdir include; cd include; mkdir curl; cd ..; mkdir release; mkdir lib;         
@@ -106,7 +106,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        Compress-Archive -Path Licenses/*, release/*, include/*, lib/* -DestinationPath "output/SDR-libs ${{matrix.platform}}.zip"
-        bash -c "gh release upload 'latest' './output/SDR-libs ${{matrix.platform}}.zip' --repo jvde-github/SDR-libraries --clobber" 
-        del "output\SDR-libs ${{matrix.platform}}.zip"
+        Compress-Archive -Path Licenses/*, release/*, include/*, lib/* -DestinationPath "./SDR-libs ${{matrix.platform}}.zip"
+        bash -c "gh release upload 'latest' './SDR-libs ${{matrix.platform}}.zip' --repo jvde-github/SDR-libraries --clobber" 
 
