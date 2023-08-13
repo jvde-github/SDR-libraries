@@ -1,0 +1,115 @@
+name: Build (Docker/Windows)
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  Windows:
+    runs-on: windows-2022
+
+    strategy:
+      matrix:
+        platform: [x86, x64]
+
+    steps:
+    
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        msbuild-architecture: ${{matrix.platform}}
+
+    - name: Restore vcpkg packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        vcpkg integrate install
+       
+    - name: Install vcpkg packages
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        vcpkg install libpq:${{matrix.platform}}-windows fftw3:${{matrix.platform}}-windows libusb:${{matrix.platform}}-windows pthread:${{matrix.platform}}-windows curl:${{matrix.platform}}-windows soxr:${{matrix.platform}}-windows zeromq:${{matrix.platform}}-windows
+    - name: Setting up directories
+      run: |
+        mkdir Licenses; mkdir include; cd include; mkdir curl; cd ..; mkdir release; mkdir lib;         
+        cp C:\vcpkg\installed\${{matrix.platform}}-windows\include\*.h include
+        cp C:\vcpkg\installed\${{matrix.platform}}-windows\include\curl\*.h include\curl
+        cp C:\vcpkg\installed\${{matrix.platform}}-windows\lib\*.lib lib
+        cp C:\vcpkg\installed\${{matrix.platform}}-windows\bin\*.dll release
+
+    - name: Building Libraries
+      run: |
+
+        echo "x64" > x64-a; echo "Win32" > x86-a; $msplatform = $(cat "${{matrix.platform}}-a")
+        $gen = "Visual Studio 17 2022"
+        $config = "Release"
+
+        $libusb_inc = "C:\vcpkg\installed\${{matrix.platform}}-windows\include\libusb-1.0"
+        $libusb_lib = "C:\vcpkg\installed\${{matrix.platform}}-windows\lib\libusb-1.0.lib"
+        $pthread_lib = "C:\vcpkg\installed\${{matrix.platform}}-windows\lib\pthreadVC3.lib"
+        $pthread_inc = "C:\vcpkg\installed\${{matrix.platform}}-windows\include"
+        $fftw3_lib = "C:\vcpkg\installed\${{matrix.platform}}-windows\lib\fftw3.lib"
+        $fftw3_inc = "C:\vcpkg\installed\${{matrix.platform}}-windows\include"
+
+        echo "RTLSDR"
+        git clone https://github.com/jvde-github/rtl-sdr.git
+        cd rtl-sdr; mkdir build; cd build
+        cmake .. -A $msplatform -G $gen -DLIBUSB_FOUND=1  -DLIBUSB_INCLUDE_DIRS="$libusb_inc"
+        msbuild /verbosity:quiet /m /p:Configuration=$config /p:Platform=$msplatform rtlsdr.sln
+        cd ..; cd ..
+        cp rtl-sdr\build\src\Release\*.dll release
+        cp rtl-sdr\build\src\Release\*.lib lib
+        cp rtl-sdr\include\*.h include
+        cp rtl-sdr\COPYING Licenses\RTLSDR
+
+        echo "AIRSPY HF+"
+        git clone https://github.com/airspy/airspyhf.git
+        git reset --hard b93deddfd05f8350b0adf75d671072e7fa7bec35
+        cd airspyhf; mkdir build; cd build
+        cmake .. -A $msplatform -G $gen -DLIBUSB_LIBRARIES="$libusb_lib" -DLIBUSB_INCLUDE_DIR="$libusb_inc" -DTHREADS_PTHREADS_WIN32_LIBRARY="$pthread_lib" -DTHREADS_PTHREADS_INCLUDE_DIR="$pthread_inc"
+        msbuild /verbosity:quiet /m /p:Configuration=$config /p:Platform=$msplatform airspyhf_all.sln
+        cd ..; cd ..
+        cp airspyhf\build\libairspyhf\src\Release\*.dll release
+        cp airspyhf\build\libairspyhf\src\Release\*.lib lib
+        cp airspyhf\libairspyhf\src\airspyhf.h include
+        cp airspyhf\LICENSE Licenses\AIRSPYHF
+
+        echo "AIRSPY"
+        git clone https://github.com/airspy/airspyone_host.git
+        git reset --hard b97309a6a24db161de990d6e4f0432fc94f72cd9
+        cd airspyone_host; mkdir build; cd build
+        cmake .. -A $msplatform -G $gen -DLIBUSB_LIBRARIES="$libusb_lib" -DLIBUSB_INCLUDE_DIR="$libusb_inc" -DTHREADS_PTHREADS_WIN32_LIBRARY="$pthread_lib" -DTHREADS_PTHREADS_INCLUDE_DIR="$pthread_inc"
+        msbuild /verbosity:quiet /m /p:Configuration=$config /p:Platform=$msplatform airspy_all.sln
+        cd ..; cd .. 
+        cp airspyone_host\build\airspy-tools\src\*.dll release
+        cp airspyone_host\build\libairspy\src\Release\*.lib lib
+        cp airspyone_host\libairspy\src\*.h include
+        cp airspyone_host\airspy-tools\LICENSE.md Licenses\AIRSPY
+
+        echo "HACK RF"
+        git clone https://github.com/greatscottgadgets/hackrf.git
+        git reset --hard 34cbbe7330d1e11e7967f84da39d04a61bfdf4f1
+        cd hackrf; cd host; mkdir build; cd build
+        cmake .. -A $msplatform -G $gen -DLIBUSB_LIBRARIES="$libusb_lib" -DLIBUSB_INCLUDE_DIR="$libusb_inc" -DTHREADS_PTHREADS_WIN32_LIBRARY="$pthread_lib" -DTHREADS_PTHREADS_INCLUDE_DIR="$pthread_inc" -DFFTW_LIBRARIES="$fftw3_lib" -DFFTW_INCLUDES="$fftw3_inc"
+        msbuild /verbosity:quiet /m /p:Configuration=$config /p:Platform=$msplatform HackRF.sln
+        cd ..; cd ..; cd ..
+        cp hackrf\host\build\libhackrf\src\Release\*.dll release
+        cp hackrf\host\build\libhackrf\src\Release\*.lib lib
+        cp hackrf\host\libhackrf\src\*.h include
+        cp hackrf\COPYING Licenses\HACKRF
+
+    - name: Prepare output
+      run: cp build\*.dll output; cp build\Release\*.exe output; cp plugins\* output\plugins; cp README.md output; 
+    
+    - name: Compress, upload, and delete ZIP file
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        Compress-Archive -Path Licenses/*, release/*, include/*, lib/* -DestinationPath "output/SDR-libs ${{matrix.platform}}.zip"
+        bash -c "gh release upload 'latest' './output/SDR-libs ${{matrix.platform}}.zip' --repo jvde-github/SDR-libraries --clobber" 
+        del "output\SDR-libs ${{matrix.platform}}.zip"
+
