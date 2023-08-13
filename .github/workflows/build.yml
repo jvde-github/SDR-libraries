@@ -102,9 +102,6 @@ jobs:
         cp hackrf\host\libhackrf\src\*.h include
         cp hackrf\COPYING Licenses\HACKRF
 
-    - name: Prepare output
-      run: cp build\*.dll output; cp build\Release\*.exe output; cp plugins\* output\plugins; cp README.md output; 
-    
     - name: Compress, upload, and delete ZIP file
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
